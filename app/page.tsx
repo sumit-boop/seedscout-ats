@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { BriefcaseBusiness, ArrowDownToLine, Plus, X, Search, ChevronDown, LogOut, Users, Upload, User, Lock } from "lucide-react";
 
 /* — Types — */
