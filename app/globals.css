@@ -674,3 +674,265 @@ h1 {
   .section-summary { text-align: left; }
   .form-row { grid-template-columns: 1fr; }
 }
+
+
+/* ── Login Screen ── */
+.login-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, rgba(26,112,96,.15) 0, transparent 400px), var(--bg);
+    padding: 24px;
+}
+.login-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    box-shadow: var(--shadow-lg);
+    padding: 40px 44px;
+    width: min(440px, 100%);
+    text-align: center;
+}
+.login-logo {
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: center;
+}
+.login-title {
+    font-size: 1.8rem;
+    font-weight: 900;
+    letter-spacing: -.03em;
+    margin-bottom: 8px;
+    color: var(--ink);
+    line-height: 1.1;
+}
+.login-subtitle {
+    color: var(--muted);
+    font-size: .9rem;
+    margin-bottom: 28px;
+}
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    text-align: left;
+}
+.login-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: .82rem;
+    font-weight: 700;
+    color: var(--ink);
+}
+.input-icon-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.input-icon {
+    position: absolute;
+    left: 12px;
+    color: var(--muted);
+    pointer-events: none;
+}
+.input-icon-wrap input {
+    width: 100%;
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px 10px 38px;
+    background: #fff;
+    color: var(--ink);
+    font-size: .875rem;
+    transition: border-color .15s, box-shadow .15s;
+}
+.input-icon-wrap input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(26,112,96,.12);
+}
+.login-error {
+    background: var(--rose-bg);
+    color: var(--rose);
+    border: 1px solid rgba(168,48,61,.2);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: .82rem;
+    font-weight: 600;
+    margin: 0;
+}
+.login-btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+    font-size: .95rem;
+    margin-top: 4px;
+}
+
+/* ── Logout button ── */
+.logout-btn {
+    min-width: 40px;
+    padding: 0 12px;
+}
+
+/* ── Empty state ── */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 48px 24px;
+    background: var(--panel);
+    border: 1.5px dashed var(--line);
+    border-radius: 14px;
+    color: var(--muted);
+    font-size: .9rem;
+    text-align: center;
+}
+.empty-state strong { color: var(--ink); }
+
+/* ── Owner Management ── */
+.owner-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 40px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px;
+}
+.owner-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--accent-soft);
+    color: var(--accent-dark);
+    border-radius: 999px;
+    padding: 4px 10px 4px 12px;
+    font-size: .82rem;
+    font-weight: 700;
+}
+.owner-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--accent-dark);
+    cursor: pointer;
+    padding: 0;
+    transition: background .15s;
+}
+.owner-remove:hover { background: rgba(26,112,96,.2); }
+.owner-add-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.owner-add-row input {
+    flex: 1;
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    padding: 9px 11px;
+    background: #fff;
+    color: var(--ink);
+    font-size: .875rem;
+    transition: border-color .15s, box-shadow .15s;
+}
+.owner-add-row input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(26,112,96,.12);
+}
+
+/* ── CV Upload ── */
+.cv-upload-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.cv-upload-label {
+    font-size: .82rem;
+    font-weight: 700;
+    color: var(--ink);
+}
+.cv-upload-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.cv-upload-btn { flex-shrink: 0; }
+.cv-filename {
+    font-size: .8rem;
+    color: var(--accent-dark);
+    font-weight: 600;
+    background: var(--accent-soft);
+    border-radius: 6px;
+    padding: 4px 10px;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.cv-parsing-note {
+    color: var(--muted);
+    font-size: .78rem;
+    margin: 0;
+    font-style: italic;
+}
+.cv-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: .73rem;
+    color: var(--accent-dark);
+    background: var(--accent-soft);
+    border-radius: 6px;
+    padding: 3px 8px;
+    margin-bottom: 8px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ── AI Match Box on Job Cards ── */
+.ai-match-box {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 9px 11px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.ai-tag {
+    font-size: .65rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--accent-dark);
+    background: var(--accent-soft);
+    border-radius: 999px;
+    padding: 2px 8px;
+    width: fit-content;
+    margin-bottom: 2px;
+}
+.job-top-match {
+    color: var(--accent-dark);
+    font-size: .83rem;
+    font-weight: 700;
+    margin-bottom: 0;
+}
+.job-top-match.no-match { color: var(--muted); font-weight: 600; }
+.match-detail {
+    color: var(--muted);
+    font-size: .75rem;
+    line-height: 1.35;
+}
