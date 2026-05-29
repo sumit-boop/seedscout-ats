@@ -1,6 +1,6 @@
+"use client";
 /* eslint-disable */
 // @ts-nocheck
-"use client";
 import { useState, useMemo, useRef, useCallback } from "react";
 import { BriefcaseBusiness, ArrowDownToLine, Plus, X, Search, ChevronDown, Upload, User, Lock, LogOut, Users } from "lucide-react";
 
