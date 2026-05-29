@@ -1,4 +1,4 @@
--- SeedScout ATS easy setup
+-- Hiring Command Center easy setup
 -- Paste this whole file into Supabase SQL Editor and click Run.
 -- If you already tried once, this script resets the SeedScout tables first.
 

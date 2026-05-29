@@ -3,8 +3,8 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SeedScout ATS",
-  description: "Founder-focused ATS for hiring teams"
+  title: "Hiring Command Center",
+  description: "Founder-focused hiring command center for growing teams"
 };
 
 export default function RootLayout({
