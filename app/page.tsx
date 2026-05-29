@@ -1,332 +1,209 @@
 "use client";
+import { useState, useMemo } from "react";
+import { BriefcaseBusiness, ArrowDownToLine, Plus, X, Search, ChevronDown } from "lucide-react";
 
-import { ArrowDownToLine, BriefcaseBusiness, Plus, Sparkles } from "lucide-react";
-import { useMemo, useState } from "react";
-import { demoCandidates, demoJobs } from "@/lib/demo-data";
-import { calculateMatch } from "@/lib/matching";
-import type { Candidate, Job, Stage } from "@/lib/types";
+const COMPANY_ID = "demo-company";
 
-const stages: Array<{ id: Stage; title: string; hint: string }> = [
+const INITIAL_JOBS = [
+  {
+    id: "job-product-designer",
+    companyId: COMPANY_ID,
+    title: "Product Designer",
+    department: "Product",
+    priority: "Critical",
+    status: "Active",
+    owner: "Sam",
+    targetDate: "2026-07-10",
+    location: "Remote",
+    compensation: "$120k-$150k",
+    mustHaves: "B2B product design, systems thinking, portfolio with shipped work.",
+    description: "Own product design for a founder-led B2B platform.",
+    sellingPoints: "Own the design system and shape the founder-led product direction.",
+  },
+  {
+    id: "job-frontend-engineer",
+    companyId: COMPANY_ID,
+    title: "Frontend Engineer",
+    department: "Engineering",
+    priority: "Important",
+    status: "Active",
+    owner: "Priya",
+    targetDate: "2026-07-25",
+    location: "Hybrid",
+    compensation: "$140k-$175k",
+    mustHaves: "React, accessibility, product sense, design system experience.",
+    description: "Build fast, accessible frontend experiences in React.",
+    sellingPoints: "High ownership, modern stack, direct collaboration with design.",
+  },
+];
+
+const INITIAL_CANDIDATES = [
+  {
+    id: "candidate-maya",
+    companyId: COMPANY_ID,
+    jobId: "job-product-designer",
+    name: "Maya Patel",
+    email: "maya@example.com",
+    phone: "",
+    role: "Product Designer",
+    stage: "sourced",
+    priority: "High",
+    source: "Referral",
+    nextStep: "Review portfolio",
+    owner: "Sam",
+    followUpDate: "2026-05-27",
+    risk: "Medium",
+    motivation: "Wants design ownership and a tighter product surface.",
+    cvText: "Product designer with B2B marketplace experience, shipped design systems, portfolio case studies, user research, and close collaboration with engineering.",
+    notes: "Strong marketplace experience and polished systems thinking.",
+  },
+  {
+    id: "candidate-jordan",
+    companyId: COMPANY_ID,
+    jobId: "job-frontend-engineer",
+    name: "Jordan Lee",
+    email: "jordan@example.com",
+    phone: "",
+    role: "Frontend Engineer",
+    stage: "screen",
+    priority: "Medium",
+    source: "LinkedIn",
+    nextStep: "Phone screen",
+    owner: "Priya",
+    followUpDate: "2026-05-29",
+    risk: "Low",
+    motivation: "Interested in frontend platform work.",
+    cvText: "Frontend engineer focused on React, accessibility, component libraries, dashboards, TypeScript, and design system implementation.",
+    notes: "React, accessibility, and design system background.",
+  },
+];
+
+const STOP_WORDS = new Set(["and","the","for","with","from","this","that","into","role","work","own","build","lead","close","candidate","experience"]);
+
+function tokenize(text: string) {
+  return [...new Set(text.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(w => w.length > 2 && !STOP_WORDS.has(w)))].slice(0, 28);
+}
+
+function matchScore(candidate: any, job: any) {
+  if (!job) return { score: 0, reason: "Link this candidate to a job.", matched: [], missing: [] };
+  const jobTokens = tokenize([job.title, job.department, job.mustHaves, job.description].filter(Boolean).join(" "));
+  const candTokens = new Set(tokenize([candidate.role, candidate.cvText, candidate.notes, candidate.motivation, candidate.source].filter(Boolean).join(" ")));
+  if (!jobTokens.length || !candTokens.size) return { score: 0, reason: "Add job description and CV text.", matched: [], missing: jobTokens.slice(0, 4) };
+  const matched = jobTokens.filter(t => candTokens.has(t));
+  const missing = jobTokens.filter(t => !candTokens.has(t)).slice(0, 4);
+  const ratio = matched.length / jobTokens.length;
+  return {
+    score: matched.length ? Math.min(98, Math.round(35 + 63 * ratio)) : 0,
+    matched, missing,
+    reason: matched.length > 0
+      ? `Matched: ${matched.slice(0,4).join(", ")}. ${missing.length ? `Missing: ${missing.join(", ")}.` : "No major gaps found."}`
+      : `No strong keyword overlap. Missing: ${missing.join(", ")}.`,
+  };
+}
+
+const STAGES = [
   { id: "sourced", title: "Sourced", hint: "Leads to review" },
   { id: "screen", title: "Screen", hint: "Intro calls" },
   { id: "interview", title: "Interview", hint: "Team loops" },
   { id: "offer", title: "Offer", hint: "Closing steps" },
-  { id: "hired", title: "Hired", hint: "Accepted" }
+  { id: "hired", title: "Hired", hint: "Accepted" },
 ];
 
-export default function Home() {
-  const [jobs] = useState<Job[]>(demoJobs);
-  const [candidates, setCandidates] = useState<Candidate[]>(demoCandidates);
-  const [query, setQuery] = useState("");
-  const [jobFilter, setJobFilter] = useState("all");
-
-  const visibleCandidates = useMemo(() => {
-    return candidates.filter((candidate) => {
-      const job = jobs.find((item) => item.id === candidate.jobId);
-      const text = [
-        candidate.name,
-        candidate.role,
-        candidate.source,
-        candidate.notes,
-        candidate.cvText,
-        job?.title
-      ]
-        .join(" ")
-        .toLowerCase();
-      return (
-        (!query || text.includes(query.toLowerCase())) &&
-        (jobFilter === "all" || candidate.jobId === jobFilter)
-      );
-    });
-  }, [candidates, jobFilter, jobs, query]);
-
-  const activeCandidates = visibleCandidates.filter((candidate) => candidate.stage !== "hired");
-  const highPriority = activeCandidates.filter((candidate) => candidate.priority === "High").length;
-  const offers = activeCandidates.filter((candidate) => candidate.stage === "offer").length;
-  const dueSoon = activeCandidates.filter((candidate) => {
-    if (!candidate.followUpDate) return false;
-    const days = daysUntil(candidate.followUpDate);
-    return days >= 0 && days <= 3;
-  }).length;
-
-  function moveCandidate(candidateId: string, stage: Stage) {
-    setCandidates((current) =>
-      current.map((candidate) => (candidate.id === candidateId ? { ...candidate, stage } : candidate))
-    );
-  }
-
+function Modal({ title, onClose, children }: any) {
   return (
-    <main className="app-shell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">SeedScout ATS</p>
-          <h1>Founder hiring command center</h1>
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>{title}</h2>
+          <button className="modal-close" onClick={onClose}><X size={20} /></button>
         </div>
-        <div className="topbar-actions">
-          <button className="ghost-button" type="button">
-            <BriefcaseBusiness size={18} />
-            Add role
-          </button>
-          <button className="ghost-button" type="button">
-            <ArrowDownToLine size={18} />
-            Export
-          </button>
-          <button className="primary-button" type="button">
-            <Plus size={18} />
-            Add candidate
-          </button>
-        </div>
-      </header>
-
-      <section className="toolbar" aria-label="Board controls">
-        <label className="search-field">
-          <Sparkles size={16} />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            type="search"
-            placeholder="Search candidates, CVs, sources, notes"
-          />
-        </label>
-        <label className="select-field">
-          Job
-          <select value={jobFilter} onChange={(event) => setJobFilter(event.target.value)}>
-            <option value="all">All jobs</option>
-            {jobs.map((job) => (
-              <option key={job.id} value={job.id}>
-                {job.title}
-              </option>
-            ))}
-          </select>
-        </label>
-      </section>
-
-      <section className="metrics" aria-label="Hiring metrics">
-        <Metric label="Active candidates" value={activeCandidates.length} />
-        <Metric label="High priority" value={highPriority} />
-        <Metric label="Due in 3 days" value={dueSoon} />
-        <Metric label="Offers out" value={offers} />
-      </section>
-
-      <section className="jobs-section" aria-label="Open jobs">
-        <SectionHeader
-          eyebrow="Open roles"
-          title="Hiring plan"
-          summary={`${jobs.length} roles, ${jobs.filter((job) => job.priority === "Critical").length} critical.`}
-        />
-        <div className="jobs-grid">
-          {jobs.map((job) => {
-            const jobCandidates = candidates.filter((candidate) => candidate.jobId === job.id);
-            const topMatch = jobCandidates
-              .map((candidate) => ({ candidate, match: calculateMatch(candidate, job) }))
-              .sort((a, b) => b.match.score - a.match.score)[0];
-            return (
-              <article className="job-card" key={job.id}>
-                <header>
-                  <div>
-                    <h3>{job.title}</h3>
-                    <p>
-                      {job.department} · {job.location}
-                    </p>
-                  </div>
-                  <span className={`job-status ${job.status.toLowerCase()}`}>{job.status}</span>
-                </header>
-                <div className="job-meta">
-                  <div>
-                    <span>Pipeline</span>
-                    <strong>{jobCandidates.length} candidates</strong>
-                  </div>
-                  <div>
-                    <span>Owner</span>
-                    <strong>{job.owner}</strong>
-                  </div>
-                </div>
-                <p>{job.mustHaves}</p>
-                <p>{topMatch ? `Top match: ${topMatch.candidate.name} (${topMatch.match.score}%)` : "No matches yet."}</p>
-              </article>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="command-center" aria-label="Founder hiring command center">
-        <SectionHeader
-          eyebrow="Founder brief"
-          title="This week in hiring"
-          summary={`${activeCandidates.length} active candidates, ${highPriority} high priority, ${dueSoon} due soon.`}
-        />
-        <div className="command-grid">
-          <article className="command-panel">
-            <header>
-              <h3>Next best actions</h3>
-              <span>Do first</span>
-            </header>
-            <div className="action-list">
-              {activeCandidates.slice(0, 4).map((candidate, index) => (
-                <div className="action-item" key={candidate.id}>
-                  <span className="action-rank">{index + 1}</span>
-                  <div>
-                    <strong>{candidate.nextStep || `Move ${candidate.name} forward`}</strong>
-                    <p>
-                      {candidate.name} · {candidate.role}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </article>
-          <article className="command-panel">
-            <header>
-              <h3>Algorithmic matching</h3>
-              <span>Explainable</span>
-            </header>
-            <div className="action-list">
-              {visibleCandidates.slice(0, 4).map((candidate) => {
-                const job = jobs.find((item) => item.id === candidate.jobId);
-                const match = calculateMatch(candidate, job);
-                return (
-                  <div className="action-item" key={candidate.id}>
-                    <span className="action-rank">{match.score}</span>
-                    <div>
-                      <strong>{candidate.name}</strong>
-                      <p>{match.reason}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </article>
-          <article className="command-panel">
-            <header>
-              <h3>Closing watch</h3>
-              <span>Offers</span>
-            </header>
-            <div className="action-list">
-              {activeCandidates
-                .filter((candidate) => candidate.stage === "offer" || candidate.risk !== "Low")
-                .slice(0, 4)
-                .map((candidate) => (
-                  <div className="closing-item" key={candidate.id}>
-                    <strong>{candidate.name}</strong>
-                    <p>{candidate.motivation || "Keep the close plan current."}</p>
-                    <span className={`risk ${candidate.risk.toLowerCase()}`}>{candidate.risk} risk</span>
-                  </div>
-                ))}
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section className="board" aria-label="Candidate pipeline">
-        {stages.map((stage) => (
-          <article className="column" key={stage.id}>
-            <header className="column-header">
-              <div>
-                <h2>{stage.title}</h2>
-                <p>{stage.hint}</p>
-              </div>
-              <span className="count">
-                {visibleCandidates.filter((candidate) => candidate.stage === stage.id).length}
-              </span>
-            </header>
-            <div className="dropzone">
-              {visibleCandidates
-                .filter((candidate) => candidate.stage === stage.id)
-                .map((candidate) => {
-                  const job = jobs.find((item) => item.id === candidate.jobId);
-                  const match = calculateMatch(candidate, job);
-                  return (
-                    <article className="candidate-card" key={candidate.id}>
-                      <header>
-                        <div>
-                          <h3>{candidate.name}</h3>
-                          <p className="role">{candidate.role}</p>
-                        </div>
-                        <span className={`priority ${candidate.priority.toLowerCase()}`}>{candidate.priority}</span>
-                      </header>
-                      <dl>
-                        <div>
-                          <dt>Next</dt>
-                          <dd>{candidate.nextStep}</dd>
-                        </div>
-                        <div>
-                          <dt>Due</dt>
-                          <dd>{formatDate(candidate.followUpDate)}</dd>
-                        </div>
-                        <div>
-                          <dt>Owner</dt>
-                          <dd>{candidate.owner}</dd>
-                        </div>
-                      </dl>
-                      <div className="match-summary">
-                        <strong>
-                          {match.score}% match{job ? ` · ${job.title}` : ""}
-                        </strong>
-                        <span>{match.reason}</span>
-                      </div>
-                      <footer>
-                        <span className="source">{candidate.source}</span>
-                        <select
-                          value={candidate.stage}
-                          onChange={(event) => moveCandidate(candidate.id, event.target.value as Stage)}
-                        >
-                          {stages.map((nextStage) => (
-                            <option key={nextStage.id} value={nextStage.id}>
-                              {nextStage.title}
-                            </option>
-                          ))}
-                        </select>
-                      </footer>
-                    </article>
-                  );
-                })}
-            </div>
-          </article>
-        ))}
-      </section>
-    </main>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: number }) {
-  return (
-    <article className="metric">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </article>
-  );
-}
-
-function SectionHeader({
-  eyebrow,
-  title,
-  summary
-}: {
-  eyebrow: string;
-  title: string;
-  summary: string;
-}) {
-  return (
-    <header className="section-header">
-      <div>
-        <p className="eyebrow">{eyebrow}</p>
-        <h2>{title}</h2>
+        {children}
       </div>
-      <p>{summary}</p>
-    </header>
+    </div>
   );
 }
 
-function daysUntil(value: string) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const target = new Date(`${value}T00:00:00`);
-  return Math.round((target.getTime() - today.getTime()) / 86400000);
-}
-
-function formatDate(value: string) {
-  if (!value) return "No date";
-  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(
-    new Date(`${value}T00:00:00`)
+function AddRoleModal({ jobs, onAdd, onClose }: any) {
+  const [form, setForm] = useState({ title: "", department: "", location: "", compensation: "", mustHaves: "", description: "", owner: "", priority: "Important" });
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+  const handleSubmit = (e: any) => {
+    e.preventDefault();
+    if (!form.title.trim()) return;
+    onAdd({ id: "job-" + form.title.toLowerCase().replace(/\s+/g, "-") + "-" + Date.now(), companyId: COMPANY_ID, status: "Active", ...form });
+    onClose();
+  };
+  return (
+    <Modal title="Add new role" onClose={onClose}>
+      <form onSubmit={handleSubmit} className="modal-form">
+        <div className="form-row">
+          <label>Job title *<input required value={form.title} onChange={e => set("title", e.target.value)} placeholder="e.g. Senior Backend Engineer" /></label>
+          <label>Department<input value={form.department} onChange={e => set("department", e.target.value)} placeholder="e.g. Engineering" /></label>
+        </div>
+        <div className="form-row">
+          <label>Location<input value={form.location} onChange={e => set("location", e.target.value)} placeholder="e.g. Remote, Hybrid, NYC" /></label>
+          <label>Compensation<input value={form.compensation} onChange={e => set("compensation", e.target.value)} placeholder="e.g. $120k-$150k" /></label>
+        </div>
+        <div className="form-row">
+          <label>Owner<input value={form.owner} onChange={e => set("owner", e.target.value)} placeholder="e.g. Sam" /></label>
+          <label>Priority
+            <select value={form.priority} onChange={e => set("priority", e.target.value)}>
+              <option>Critical</option><option>Important</option><option>Nice to have</option>
+            </select>
+          </label>
+        </div>
+        <label>Must-haves<textarea rows={2} value={form.mustHaves} onChange={e => set("mustHaves", e.target.value)} placeholder="Key skills and requirements" /></label>
+        <label>Job description<textarea rows={3} value={form.description} onChange={e => set("description", e.target.value)} placeholder="Describe the role..." /></label>
+        <div className="modal-actions">
+          <button type="button" className="ghost-button" onClick={onClose}>Cancel</button>
+          <button type="submit" className="primary-button"><Plus size={16} />Add role</button>
+        </div>
+      </form>
+    </Modal>
   );
 }
+
+function AddCandidateModal({ jobs, onAdd, onClose }: any) {
+  const [form, setForm] = useState({ name: "", email: "", role: "", jobId: jobs[0]?.id || "", source: "LinkedIn", nextStep: "", owner: "", followUpDate: "", priority: "Medium", cvText: "", notes: "" });
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+  const handleSubmit = (e: any) => {
+    e.preventDefault();
+    if (!form.name.trim()) return;
+    onAdd({ id: "candidate-" + form.name.toLowerCase().replace(/\s+/g, "-") + "-" + Date.now(), companyId: COMPANY_ID, stage: "sourced", risk: "Low", motivation: "", phone: "", ...form });
+    onClose();
+  };
+  return (
+    <Modal title="Add candidate" onClose={onClose}>
+      <form onSubmit={handleSubmit} className="modal-form">
+        <div className="form-row">
+          <label>Full name *<input required value={form.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Alex Johnson" /></label>
+          <label>Email<input type="email" value={form.email} onChange={e => set("email", e.target.value)} placeholder="candidate@email.com" /></label>
+        </div>
+        <div className="form-row">
+          <label>Role / Title<input value={form.role} onChange={e => set("role", e.target.value)} placeholder="e.g. Product Designer" /></label>
+          <label>Job opening
+            <select value={form.jobId} onChange={e => set("jobId", e.target.value)}>
+              {jobs.map((j: any) => <option key={j.id} value={j.id}>{j.title}</option>)}
+            </select>
+          </label>
+        </div>
+        <div className="form-row">
+          <label>Source
+            <select value={form.source} onChange={e => set("source", e.target.value)}>
+              {["LinkedIn","Referral","AngelList","Inbound","Cold outreach","Other"].map(s => <option key={s}>{s}</option>)}
+            </select>
+          </label>
+          <label>Priority
+            <select value={form.priority} onChange={e => set("priority", e.target.value)}>
+              <option>High</option><option>Medium</option><option>Low</option>
+            </select>
+          </label>
+        </div>
+        <div className="form-row">
+          <label>Owner<input value={form.owner} onChange={e => set("owner", e.target.value)} placeholder="e.g. Priya" /></label>
+          <label>Follow-up date<input type="date" value={form.followUpDate} onChange={e => set("followUpDate", e.target.value)} /></label>
+        </div>
+        <label>Next step<input value={form.nextStep} onChange={e => set("nextStep", e.target.value)} placeholder="e.g. Phone screen, Review portfolio" /></label>
+        <label>CV / Resume notes<textarea rows={2} value={form.cvText} onChange={e => set("cvText", e.target.value)} placeholder="Paste key skills and experience from their CV..." /></label>
+        <label>Notes<textarea rows={2} value={form.notes} onChange={e => set("notes", e.target.value)} placeholder="Any additional observations..." /></label>
+        <div className="modal-actions">
+          <button type="button"
